@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Alarm App</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #FF7F50, #000000);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        h1 {
+            margin-top: 50px;
+        }
+        #alarm-wheel {
+            width: 200px;
+            height: 200px;
+            margin: 50px auto;
+            border: 10px solid #FF7F50;
+            border-radius: 50%;
+            overflow: hidden;
+            position: relative;
+        }
+        #alarm-wheel::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5));
+            filter: blur(20px);
+            z-index: -1;
+        }
+        .scroll-wheel {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform-origin: 50% 50%;
+            animation: rotate 15s linear infinite;
+        }
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+        .scroll-wheel span {
+            font-size: 30px;
+            font-weight: bold;
+            display: block;
+            line-height: 50px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .hour {
+            color: #FF7F50;
+        }
+        .minute {
+            color: #FFD700;
+        }
+        .volume {
+            color: #FF1493;
+        }
+        .label {
+            font-size: 20px;
+            margin-top: 20px;
+        }
+        .input {
+            font-size: 30px;
+            margin-bottom: 10px;
+            padding: 5px;
+            width: 80px;
+            background-color: transparent;
+            color: white;
+            border: none;
+            text-align: center;
+        }
+        .button {
+            font-size: 20px;
+            padding: 10px 30px;
+            background-color: #FF7F50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background-color: #FF4500;
+        }
+        .effect {
+            animation: buttonEffect 0.3s;
+        }
+        @keyframes buttonEffect {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.1);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background-color: #FF7F50;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 5px;
+    background-color: #FF7F50;
+    border-radius: 5px;
+}
+
+.input-slider {
+    width: 200px;
+    margin: 0 auto;
+    margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+<h1>Alarm App</h1>
+<div id="alarm-wheel">
+    <div class="scroll-wheel">
+        <span class="hour">GUARANTEED WAKE</span>
+        <span class="minute"></span>
+        <span class="volume"></span>
+    </div>
+</div>
+<div class="label">Hour</div>
+<input type="number" id="hour-input" min="0" max="23" class="input">
+<div class="label">Minute</div>
+<input type="number" id="minute-input" min="0" max="59" class="input">
+<div class="label">Volume</div>
+<input type="range" id="volume-slider" min="0" max="100" class="input-slider">
+<button id="set-button" class="button">Set Alarm</button>
+<script>
+$(document).ready(function() {
+    var audio = new Howl({
+        src: ['./SSRO.mp3']
+    });
+
+    $('#set-button').click(function() {
+        var hourin = parseInt($('#hour-input').val());
+        var minutein = parseInt($('#minute-input').val());
+        var volumein = parseInt($('#volume-slider').val());
+
+        var play_time = new Date();
+        play_time.setHours(hourin);
+        play_time.setMinutes(minutein);
+        play_time.setSeconds(0);
+
+        var volume = volumein / 100;
+
+        var interval = setInterval(function() {
+            var now = new Date();
+            if (now >= play_time) {
+                clearInterval(interval);
+
+                audio.volume(0);
+                audio.play();
+
+                var fadeInterval = setInterval(function() {
+                    audio.volume(audio.volume() + volume);
+                    if (audio.volume() >= 1) {
+                        clearInterval(fadeInterval);
+                        setTimeout(function() {
+                            var fadeOutInterval = setInterval(function() {
+                                audio.volume(audio.volume() - volume);
+                                if (audio.volume() <= 0) {
+                                    clearInterval(fadeOutInterval);
+                                    audio.stop();
+                                }
+                            }, 50);
+                        }, 120000);
+                    }
+                }, 50);
+            }
+        }, 1000);
+
+        // Button effect
+        $('#set-button').addClass('effect');
+        setTimeout(function() {
+            $('#set-button').removeClass('effect');
+        }, 300);
+    });
+
+    // Update the scroll wheel with selected values
+    function updateScrollWheel(hour, minute, volume) {
+        $('.hour').text('GUARANTEED WAKE');
+        $('.minute').text(minute < 10 ? '0' + minute : minute);
+        $('.volume').text(volume < 10 ? '0' + volume : volume);
+    }
+
+    // Handle scroll wheel rotation
+    $('.scroll-wheel').on('wheel', function(e) {
+        e.preventDefault();
+        var currentMinute = parseInt($('.minute').text());
+        var currentVolume = parseInt($('.volume').text());
+
+        if (e.originalEvent.deltaY > 0) {
+            if (e.shiftKey) {
+                currentVolume = (currentVolume - 1) % 101
+if (currentVolume < 0) {
+                    currentVolume = 100;
+                }
+            } else {
+                currentMinute = (currentMinute - 1) % 60;
+                if (currentMinute < 0) {
+                    currentMinute = 59;
+                }
+            }
+        } else {
+            if (e.shiftKey) {
+                currentVolume = (currentVolume + 1) % 101;
+            } else {
+                currentMinute = (currentMinute + 1) % 60;
+            }
+        }
+
+        updateScrollWheel("GUARANTEED WAKE", currentMinute, currentVolume);
+    });
+
+    // Initial scroll wheel update
+    updateScrollWheel("GUARANTEED WAKE", 0, 0);
+});
+</script>
+</body>
+</html>
